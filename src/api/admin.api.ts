@@ -90,21 +90,34 @@ export const AdminAPI = {
 
   // ... rest of your functions remain the same
   createUser: async (data: CreateUserDTO) => {
-    switch (data.role) {
-      case "ADMIN":
-        return apiAdmin.post("/v1/admins/", data);
+  console.log("Creating user with role:", data.role, "Data:", data);
+  
+  const userData = {
+    nom: data.nom,
+    prenom: data.prenom,
+    email: data.email,
+    password: data.password,
+    date_naissance: data.date_naissance,
+  };
 
-      case "BIBLIOTHECAIRE":
-        return apiBiblio.post("/v1/bibliothecaires/", data);
+  switch (data.role) {
+    case "ADMIN":
+      console.log("Creating ADMIN via:", apiAdmin.defaults.baseURL);
+      return apiAdmin.post("/v1/admins/", userData);
 
-      case "LECTEUR":
-        return apiLecteur.post("/v1/lecteurs/register", data);
+    case "BIBLIOTHECAIRE":
+      console.log("Creating BIBLIOTHECAIRE via:", apiBiblio.defaults.baseURL);
+      return apiBiblio.post("/v1/bibliothecaires/", userData);
 
-      default:
-        throw new Error("Rôle invalide");
-    }
-  },
+    case "LECTEUR":
+      console.log("Creating LECTEUR via:", apiLecteur.defaults.baseURL);
+      // Note: Lecteurs might use /register endpoint
+      return apiLecteur.post("/v1/lecteurs/register", userData);
 
+    default:
+      throw new Error("Rôle invalide: " + data.role);
+  }
+},
   updateUser: async (
     userId: string,
     role: "ADMIN" | "BIBLIOTHECAIRE" | "LECTEUR",

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { AdminAPI } from "../../api/admin.api";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus, ArrowLeft, CheckCircle, XCircle, Info, User, Mail, Lock, Calendar, Crown, Book, UserCheck } from "lucide-react";
+import { UserPlus, ArrowLeft, CheckCircle, XCircle, Info, User, Mail, Lock, Calendar, Crown, Book, UserCheck, AlertCircle } from "lucide-react";
 
 const CreateUser = () => {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ const CreateUser = () => {
     email: "",
     password: "",
     date_naissance: "",
-    role: "LECTEUR",
+    role: "LECTEUR" as "ADMIN" | "BIBLIOTHECAIRE" | "LECTEUR",
   });
 
   const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ const CreateUser = () => {
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
       return {
         isValid: false,
-        error: "Doit contenir majuscule, minuscule et chiffre"
+        error: "Doit contenir au moins une majuscule, une minuscule et un chiffre"
       };
     }
     
@@ -79,7 +79,7 @@ const CreateUser = () => {
     
     setForm(prev => ({
       ...prev,
-      [name]: value,
+      [name]: name === "role" ? (value as "ADMIN" | "BIBLIOTHECAIRE" | "LECTEUR") : value,
     }));
 
     // Validate email in real-time
@@ -118,22 +118,61 @@ const CreateUser = () => {
     }
 
     // Check if all required fields are filled
-    if (!form.nom || !form.prenom || !form.date_naissance) {
+    if (!form.nom.trim() || !form.prenom.trim() || !form.date_naissance) {
       setError("Tous les champs sont obligatoires");
       setLoading(false);
       return;
     }
 
     try {
-      await AdminAPI.createUser(form as any);
+      console.log("Creating user with data:", form);
+      
+      // Prepare the data
+      const userData = {
+        nom: form.nom.trim(),
+        prenom: form.prenom.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        date_naissance: form.date_naissance,
+        role: form.role,
+      };
+
+      await AdminAPI.createUser(userData);
+      
+      // Show success message and navigate
+      alert("Utilisateur créé avec succès !");
       navigate("/admin/users");
+      
     } catch (err: any) {
-      console.error(err);
-      if (err.response?.status === 409) {
-        setError("Un utilisateur avec cet email existe déjà");
-      } else {
-        setError("Erreur lors de la création de l'utilisateur");
+      console.error("Error creating user:", err);
+      
+      let errorMessage = "Erreur lors de la création de l'utilisateur";
+      
+      if (err.response) {
+        console.error("Response error:", err.response.data);
+        
+        if (err.response.status === 409) {
+          errorMessage = "Un utilisateur avec cet email existe déjà";
+        } else if (err.response.status === 400) {
+          errorMessage = "Données invalides. Vérifiez les informations saisies.";
+          
+          // Try to get specific error message from response
+          if (err.response.data && typeof err.response.data === 'object') {
+            const serverError = Object.values(err.response.data).join(', ');
+            if (serverError) errorMessage = serverError;
+          } else if (err.response.data) {
+            errorMessage = err.response.data;
+          }
+        } else if (err.response.status === 401) {
+          errorMessage = "Vous n'êtes pas autorisé à effectuer cette action";
+        } else if (err.response.status === 500) {
+          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -158,6 +197,15 @@ const CreateUser = () => {
       case "BIBLIOTHECAIRE": return <Book size={20} />;
       case "LECTEUR": return <UserCheck size={20} />;
       default: return <User size={20} />;
+    }
+  };
+
+  const getRoleColor = (role: string): string => {
+    switch (role) {
+      case 'ADMIN': return '#FF6B6B';
+      case 'BIBLIOTHECAIRE': return '#FF9B54';
+      case 'LECTEUR': return '#FFD166';
+      default: return '#9C5149';
     }
   };
 
@@ -205,17 +253,17 @@ const CreateUser = () => {
       marginBottom: '40px',
     },
     backButton: {
-      fontSize: '1.5rem',
+      fontSize: '1rem',
       color: '#FFFBF5',
       textDecoration: 'none' as const,
-      padding: '12px 24px',
+      padding: '10px 20px',
       backgroundColor: 'rgba(255, 251, 245, 0.1)',
       borderRadius: '10px',
       border: '2px solid rgba(255, 251, 245, 0.2)',
       transition: 'all 0.3s ease',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
+      gap: '8px',
     },
     title: {
       fontSize: '2.2rem',
@@ -262,11 +310,6 @@ const CreateUser = () => {
       outline: 'none' as const,
       transition: 'all 0.3s ease',
       cursor: 'pointer',
-    },
-    option: {
-      backgroundColor: '#281C16',
-      color: '#FFFBF5',
-      padding: '10px',
     },
     buttonGroup: {
       display: 'flex',
@@ -371,24 +414,13 @@ const CreateUser = () => {
     },
   };
 
-  const getRoleColor = (role: string): string => {
-    switch (role) {
-      case 'ADMIN': return '#FF6B6B';
-      case 'BIBLIOTHECAIRE': return '#FF9B54';
-      case 'LECTEUR': return '#FFD166';
-      default: return '#9C5149';
-    }
-  };
-
   return (
     <div style={styles.container}>
-      {/* Background */}
       <div style={styles.background}>
         <div style={styles.gradientOverlay} />
       </div>
 
       <div style={styles.content}>
-        {/* Header */}
         <header style={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Link
@@ -412,12 +444,16 @@ const CreateUser = () => {
           </div>
         </header>
 
-        {/* Main Form */}
         <div style={styles.card}>
           {error && (
             <div style={styles.errorAlert}>
-              <span style={{ fontSize: '1.2rem' }}>⚠️</span>
-              <span style={{ fontWeight: 600 }}>{error}</span>
+              <AlertCircle size={24} />
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: '5px' }}>
+                  Erreur de création
+                </div>
+                <div style={{ fontSize: '0.9rem' }}>{error}</div>
+              </div>
             </div>
           )}
 
@@ -437,6 +473,14 @@ const CreateUser = () => {
                     value={form.nom}
                     onChange={handleChange}
                     style={styles.input}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#FFD166';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(255, 251, 245, 0.3)';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
+                    }}
                   />
                 </div>
 
@@ -452,6 +496,14 @@ const CreateUser = () => {
                     value={form.prenom}
                     onChange={handleChange}
                     style={styles.input}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#FFD166';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(255, 251, 245, 0.3)';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
+                    }}
                   />
                 </div>
 
@@ -481,8 +533,19 @@ const CreateUser = () => {
                       onChange={handleChange}
                       style={{
                         ...styles.input,
+                        paddingRight: '50px',
                         borderColor: emailError && !emailValid ? '#FF6B6B' : 
                                    emailValid ? '#4CAF50' : 'rgba(255, 251, 245, 0.3)',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#FFD166';
+                        e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.15)';
+                      }}
+                      onBlur={(e) => {
+                        if (!emailError && !emailValid) {
+                          e.target.style.borderColor = 'rgba(255, 251, 245, 0.3)';
+                        }
+                        e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
                       }}
                     />
                     <div style={{
@@ -520,6 +583,14 @@ const CreateUser = () => {
                     value={form.date_naissance}
                     onChange={handleChange}
                     style={styles.input}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#FFD166';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(255, 251, 245, 0.3)';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
+                    }}
                   />
                 </div>
 
@@ -548,8 +619,19 @@ const CreateUser = () => {
                     onChange={handleChange}
                     style={{
                       ...styles.input,
+                      paddingRight: '50px',
                       borderColor: passwordError ? '#FF6B6B' : 
                                  form.password && !passwordError ? '#4CAF50' : 'rgba(255, 251, 245, 0.3)',
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#FFD166';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      if (!passwordError) {
+                        e.target.style.borderColor = 'rgba(255, 251, 245, 0.3)';
+                      }
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
                     }}
                   />
                   {passwordError && (
@@ -577,6 +659,14 @@ const CreateUser = () => {
                       ...styles.select,
                       borderColor: getRoleColor(form.role),
                       backgroundColor: `${getRoleColor(form.role)}15`,
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#FFD166';
+                      e.target.style.backgroundColor = 'rgba(255, 251, 245, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = getRoleColor(form.role);
+                      e.target.style.backgroundColor = `${getRoleColor(form.role)}15`;
                     }}
                   >
                     <option value="LECTEUR">Lecteur</option>
@@ -614,7 +704,7 @@ const CreateUser = () => {
             <div style={styles.buttonGroup}>
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/admin/users")}
                 style={styles.cancelButton}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.2)';
@@ -625,15 +715,19 @@ const CreateUser = () => {
                   e.currentTarget.style.borderColor = 'rgba(255, 251, 245, 0.3)';
                 }}
               >
-                <XCircle size={20} />
+                <ArrowLeft size={20} />
                 Annuler
               </button>
               <button
                 type="submit"
-                disabled={loading || !emailValid || passwordError || !form.nom || !form.prenom || !form.date_naissance}
-                style={styles.submitButton}
+                disabled={loading || !emailValid || !!passwordError || !form.nom.trim() || !form.prenom.trim() || !form.date_naissance}
+                style={{
+                  ...styles.submitButton,
+                  opacity: loading || !emailValid || !!passwordError || !form.nom.trim() || !form.prenom.trim() || !form.date_naissance ? 0.6 : 1,
+                  cursor: loading || !emailValid || !!passwordError || !form.nom.trim() || !form.prenom.trim() || !form.date_naissance ? 'not-allowed' : 'pointer',
+                }}
                 onMouseEnter={(e) => {
-                  if (!loading && emailValid && !passwordError && form.nom && form.prenom && form.date_naissance) {
+                  if (!loading && emailValid && !passwordError && form.nom.trim() && form.prenom.trim() && form.date_naissance) {
                     e.currentTarget.style.backgroundColor = 'transparent';
                     e.currentTarget.style.color = '#FFD166';
                     e.currentTarget.style.transform = 'translateY(-3px)';
@@ -641,7 +735,7 @@ const CreateUser = () => {
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading && emailValid && !passwordError && form.nom && form.prenom && form.date_naissance) {
+                  if (!loading && emailValid && !passwordError && form.nom.trim() && form.prenom.trim() && form.date_naissance) {
                     e.currentTarget.style.backgroundColor = '#FFD166';
                     e.currentTarget.style.color = '#3C2F2F';
                     e.currentTarget.style.transform = 'translateY(0)';
@@ -688,8 +782,8 @@ const CreateUser = () => {
             to { transform: rotate(360deg); }
           }
           @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
           }
           
           ::-webkit-scrollbar {
