@@ -85,7 +85,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* ADMIN */}
+     {/* ADMIN */}
       <Route
         path="/admin"
         element={
@@ -95,12 +95,12 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/admin/users"
-        element={
-          <ProtectedRoute roles={["ADMIN"]}>
-            <UserManagement />
-          </ProtectedRoute>
-        }
+      path="/admin/users"
+      element={
+        <ProtectedRoute roles={["ADMIN"]}>
+          <UserManagement />
+        </ProtectedRoute>
+      }
       />
       <Route
         path="/admin/users/create"
@@ -110,6 +110,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/admin/users/:role/:id/edit"
         element={
@@ -118,6 +119,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
     </Routes>
   );
 };
