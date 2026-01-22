@@ -1,5 +1,6 @@
 export type UserRole = "ADMIN" | "BIBLIOTHECAIRE" | "LECTEUR";
 
+// Définition de l'interface User
 export interface User {
   id: string;
   nom: string;

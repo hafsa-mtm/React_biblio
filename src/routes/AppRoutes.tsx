@@ -85,7 +85,7 @@ const AppRoutes = () => {
         }
       />
 
-     {/* ADMIN */}
+      {/* ADMIN */}
       <Route
         path="/admin"
         element={
@@ -119,7 +119,6 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-
     </Routes>
   );
 };
