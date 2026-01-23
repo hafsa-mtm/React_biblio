@@ -2,6 +2,19 @@ import { apiAdmin, apiLecteur, apiBiblio } from "./axios";
 import { User } from "../types/User";
 import { CreateUserDTO } from "../types/CreateUser";
 
+export interface AdminStats {
+  totalUsers: number;
+  totalAdmins: number;
+  totalBibliothecaires: number;
+  totalLecteurs: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  suspendedUsers: number;
+  usersByMonth: { label: string; value: number }[];
+  usersByRole: { label: string; value: number; color: string }[];
+  recentRegistrations: any[];
+}
+
 export const AdminAPI = {
   getAllUsers: async (): Promise<User[]> => {
     console.log("🔄 Fetching all users...");
@@ -296,4 +309,113 @@ export const AdminAPI = {
       throw error;
     }
   },
+
+   getDashboardStats: async (): Promise<AdminStats> => {
+    console.log("📊 Fetching dashboard statistics...");
+    
+    try {
+      // Récupérer tous les utilisateurs
+      const allUsers = await AdminAPI.getAllUsers();
+      
+      // Calculer les statistiques
+      const totalUsers = allUsers.length;
+      const totalAdmins = allUsers.filter(user => user.role === "ADMIN").length;
+      const totalBibliothecaires = allUsers.filter(user => user.role === "BIBLIOTHECAIRE").length;
+      const totalLecteurs = allUsers.filter(user => user.role === "LECTEUR").length;
+      
+      // Simuler des données pour les autres statistiques (à adapter selon votre API réelle)
+      const activeUsers = Math.floor(totalUsers * 0.9);
+      const inactiveUsers = Math.floor(totalUsers * 0.05);
+      const suspendedUsers = Math.floor(totalUsers * 0.05);
+      
+      // Générer les données par mois (6 derniers mois)
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentMonth = new Date().getMonth();
+      const usersByMonth = months.slice(Math.max(0, currentMonth - 5), currentMonth + 1)
+        .map((month, index) => ({
+          label: month,
+          value: Math.floor(Math.random() * 50) + 10
+        }));
+      
+      // Données par rôle
+      const usersByRole = [
+        { label: 'Admins', value: totalAdmins, color: '#FF6B6B' },
+        { label: 'Bibliothecaires', value: totalBibliothecaires, color: '#FF9B54' },
+        { label: 'Lecteurs', value: totalLecteurs, color: '#FFD166' }
+      ];
+      
+      // Inscriptions récentes (5 dernières)
+      const recentRegistrations = allUsers
+  .filter(u => u.created_at) // garder uniquement ceux qui ont une date
+  .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+  .slice(0, 5);
+
+      
+      const stats: AdminStats = {
+        totalUsers,
+        totalAdmins,
+        totalBibliothecaires,
+        totalLecteurs,
+        activeUsers,
+        inactiveUsers,
+        suspendedUsers,
+        usersByMonth,
+        usersByRole,
+        recentRegistrations
+      };
+      
+      console.log("📊 Dashboard stats calculated:", stats);
+      return stats;
+      
+    } catch (error) {
+      console.error("❌ Error fetching dashboard stats:", error);
+      throw error;
+    }
+  },
+
+  exportUsersToCSV: async (): Promise<Blob> => {
+    try {
+      const users = await AdminAPI.getAllUsers();
+      
+      // Convertir en CSV
+      const headers = ['ID', 'Nom', 'Prénom', 'Email', 'Rôle', 'Date de Naissance', 'Date de Création'];
+      const csvData = users.map(user => [
+        user.id,
+        user.nom,
+        user.prenom,
+        user.email,
+        user.role,
+        user.date_naissance,
+        user.created_at
+      ]);
+      
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => row.join(','))
+      ].join('\n');
+      
+      return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      throw error;
+    }
+  },
+
+  generateUserReport: async (): Promise<void> => {
+    try {
+      const stats = await AdminAPI.getDashboardStats();
+      
+      // Ici, vous pouvez envoyer les stats au backend pour générer un PDF
+      // ou simplement afficher un message de succès
+      console.log('Report generated with stats:', stats);
+      
+      // Pour l'instant, on simule le succès
+      return Promise.resolve();
+      
+    } catch (error) {
+      console.error('Error generating report:', error);
+      throw error;
+    }
+  }
 };

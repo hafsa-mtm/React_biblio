@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { LivreAPI } from "../../api/livre.api";
 import { Book } from "../../types/Book";
-import { BookOpen, Upload, Save, CheckCircle, XCircle, Info, ArrowLeft } from "lucide-react";
+import { Upload, Save, CheckCircle, XCircle, Info, ArrowLeft } from "lucide-react";
 
 const EditBook = () => {
   const { id } = useParams<{ id: string }>();
@@ -892,7 +892,7 @@ const EditBook = () => {
                       <div style={styles.imagePreview}>
                         <img
                           src={imagePreview}
-                          alt="Nouvelle image"
+                          alt="Nouvelle couverture"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       </div>

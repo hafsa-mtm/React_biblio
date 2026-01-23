@@ -16,7 +16,7 @@ const Catalog = () => {
     const fetchBooks = async () => {
       try {
         const data = await LivreAPI.getAll();
-        const dispoBooks = data.filter((book: Book) => book.numTotalLivres > 0);
+        const dispoBooks = data.filter((book: Book) => (book.numTotalLivres ?? 0) > 0);
         setBooks(dispoBooks);
         setFilteredBooks(dispoBooks);
         
@@ -41,9 +41,9 @@ const Catalog = () => {
     // Apply search filter
     if (searchTerm) {
       result = result.filter(book =>
-        book.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.auteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.isbn.toLowerCase().includes(searchTerm.toLowerCase())
+        book.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.auteur?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.isbn?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -556,7 +556,7 @@ const Catalog = () => {
             marginBottom: '60px',
           }}>
             {filteredBooks.map(book => (
-              <BookCard key={book.idLivre} book={book} />
+              <BookCard key={book.idLivre || Math.random()} book={book} />
             ))}
           </div>
         ) : (

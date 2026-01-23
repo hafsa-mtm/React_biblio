@@ -2,9 +2,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { LivreAPI } from '../../api/livre.api';
 import { Book } from '../../types/Book';
+import { PretAPI } from '../../api/pret.api';
+import { Prete } from '../../types/Pret';
+import { useAuth } from '../../auth/AuthContext';
 
 // Helper functions for book styling
-const getBookSpineColor = (genre: string) => {
+const getBookSpineColor = (genre: string | undefined) => {
+  if (!genre) return '#9C5149';
+  
   const colors: Record<string, string> = {
     'Roman': '#C19A6B',
     'Science-Fiction': '#4A90E2',
@@ -22,7 +27,9 @@ const getBookSpineColor = (genre: string) => {
   return colors[genre] || '#9C5149';
 };
 
-const getBookCoverGradient = (genre: string) => {
+const getBookCoverGradient = (genre: string | undefined) => {
+  if (!genre) return 'linear-gradient(135deg, #9C5149 0%, #C19A6B 100%)';
+  
   const gradients: Record<string, string> = {
     'Roman': 'linear-gradient(135deg, #C19A6B 0%, #8B7355 100%)',
     'Science-Fiction': 'linear-gradient(135deg, #4A90E2 0%, #2C5282 100%)',
@@ -40,7 +47,9 @@ const getBookCoverGradient = (genre: string) => {
   return gradients[genre] || 'linear-gradient(135deg, #9C5149 0%, #C19A6B 100%)';
 };
 
-const getBookIcon = (genre: string) => {
+const getBookIcon = (genre: string | undefined) => {
+  if (!genre) return '📚';
+  
   const icons: Record<string, string> = {
     'Roman': '📖',
     'Science-Fiction': '🚀',
@@ -61,6 +70,7 @@ const getBookIcon = (genre: string) => {
 const BookDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth(); // récupère rôle et infos
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [isBookRotating, setIsBookRotating] = useState(false);
@@ -79,6 +89,35 @@ const BookDetails = () => {
 
     fetchBook();
   }, [id]);
+
+  const handleDemande = async () => {
+    if (!user || !user.role?.toUpperCase().includes("LECTEUR")) {
+      // Redirection vers login si pas lecteur
+      navigate("/login");
+      return;
+    }
+
+    if (!book?.idLivre) {
+      alert("Erreur: ID du livre non disponible");
+      return;
+    }
+
+    const demande: Prete = {
+      titre: `Demande du livre ${book?.titre}`,
+      description: "Demande effectuée par le lecteur", 
+      idLivre: book.idLivre,
+      user_id: user.id,
+      demande: true,
+      livreRetourne: false,
+    };
+
+    try {
+      await PretAPI.creerDemande(demande);
+      alert("Demande envoyée avec succès");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Erreur lors de la demande");
+    }
+  };
 
   if (loading) {
     return (
@@ -197,36 +236,35 @@ const BookDetails = () => {
           marginBottom: '40px',
         }}>
           <button
-            onClick={() => navigate(-1)}
-            style={{
-              fontSize: '1.1rem',
-              color: '#FFFBF5',
-              background: 'none',
-              border: 'none',
-              padding: '12px 25px',
-              backgroundColor: 'rgba(255, 251, 245, 0.1)',
-              borderRadius: '10px',
-              border: '2px solid rgba(255, 251, 245, 0.2)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              fontFamily: "'Cormorant Garamond', serif",
-              marginBottom: '25px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.2)';
-              e.currentTarget.style.transform = 'translateX(-5px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
-              e.currentTarget.style.transform = 'translateX(0)';
-            }}
-          >
-            <span style={{ fontSize: '1.3rem' }}>←</span>
-            Retour au catalogue
-          </button>
+  onClick={() => navigate(-1)}
+  style={{
+    fontSize: '1.1rem',
+    color: '#FFFBF5',
+    background: 'none',
+    padding: '12px 25px',
+    backgroundColor: 'rgba(255, 251, 245, 0.1)',
+    borderRadius: '10px',
+    border: '2px solid rgba(255, 251, 245, 0.2)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontFamily: "'Cormorant Garamond', serif",
+    marginBottom: '25px',
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.2)';
+    e.currentTarget.style.transform = 'translateX(-5px)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.1)';
+    e.currentTarget.style.transform = 'translateX(0)';
+  }}
+>
+  <span style={{ fontSize: '1.3rem' }}>←</span>
+  Retour au catalogue
+</button>
           
           <div style={{
             fontSize: '2.5rem',
@@ -237,7 +275,7 @@ const BookDetails = () => {
             lineHeight: 1.2,
             marginBottom: '10px',
           }}>
-            {book.titre}
+            {book.titre || 'Titre inconnu'}
           </div>
           <div style={{
             color: '#FFD166',
@@ -248,7 +286,7 @@ const BookDetails = () => {
             fontStyle: 'italic',
           }}>
             <span>✍️</span>
-            <span>{book.auteur}</span>
+            <span>{book.auteur || 'Auteur inconnu'}</span>
           </div>
         </header>
 
@@ -325,7 +363,7 @@ const BookDetails = () => {
                 position: 'absolute',
                 width: '100%',
                 height: '100%',
-                background: book.image ? `url(${book.image}) center/cover` : coverGradient,
+                background: book.image ? `url("${book.image}") center/cover` : coverGradient,
                 borderRadius: '8px 20px 20px 8px',
                 border: '3px solid rgba(255, 251, 245, 0.3)',
                 boxShadow: '20px 20px 40px rgba(0, 0, 0, 0.4)',
@@ -393,7 +431,7 @@ const BookDetails = () => {
                   whiteSpace: 'nowrap',
                   textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
                 }}>
-                  {book.genre}
+                  {book.genre || 'Non spécifié'}
                 </div>
               </div>
               
@@ -450,14 +488,14 @@ const BookDetails = () => {
                   📚 Disponibilité
                 </span>
                 <span style={{
-                  color: book.numTotalLivres > 0 ? '#4CAF50' : '#FF6B6B',
+                  color: (book.numTotalLivres ?? 0) > 0 ? '#4CAF50' : '#FF6B6B',
                   fontWeight: 600,
                   padding: '6px 15px',
-                  backgroundColor: book.numTotalLivres > 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 107, 107, 0.1)',
+                  backgroundColor: (book.numTotalLivres ?? 0) > 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 107, 107, 0.1)',
                   borderRadius: '20px',
-                  border: `1px solid ${book.numTotalLivres > 0 ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 107, 107, 0.3)'}`,
+                  border: `1px solid ${(book.numTotalLivres ?? 0) > 0 ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 107, 107, 0.3)'}`,
                 }}>
-                  {book.numTotalLivres} exemplaire{book.numTotalLivres > 1 ? 's' : ''}
+                  {book.numTotalLivres ?? 0} exemplaire{(book.numTotalLivres ?? 0) > 1 ? 's' : ''}
                 </span>
               </div>
               
@@ -483,7 +521,7 @@ const BookDetails = () => {
                   fontWeight: 600,
                   fontSize: '1.1rem',
                 }}>
-                  {book.numPages}
+                  {book.numPages || 'Non spécifié'}
                 </span>
               </div>
               
@@ -506,7 +544,7 @@ const BookDetails = () => {
                   fontWeight: 600,
                   fontSize: '1.1rem',
                 }}>
-                  {book.numChapters}
+                  {book.numChapters || 'Non spécifié'}
                 </span>
               </div>
             </div>
@@ -514,6 +552,7 @@ const BookDetails = () => {
             {/* Action Buttons */}
             <div style={{ marginTop: '30px' }}>
               <button
+                onClick={handleDemande}
                 style={{
                   width: '100%',
                   padding: '18px',
@@ -555,49 +594,6 @@ const BookDetails = () => {
                   fontSize: '1.2rem',
                   transition: 'transform 0.3s ease',
                 }}>→</span>
-              </button>
-              
-              <button
-                style={{
-                  width: '100%',
-                  padding: '18px',
-                  background: 'linear-gradient(135deg, rgba(156, 81, 73, 0.1) 0%, rgba(192, 57, 43, 0.1) 100%)',
-                  color: '#9C5149',
-                  border: '2px solid rgba(156, 81, 73, 0.3)',
-                  borderRadius: '12px',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontFamily: "'Cormorant Garamond', serif",
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(156, 81, 73, 0.2) 0%, rgba(192, 57, 43, 0.2) 100%)';
-                  e.currentTarget.style.borderColor = '#9C5149';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(156, 81, 73, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(156, 81, 73, 0.1) 0%, rgba(192, 57, 43, 0.1) 100%)';
-                  e.currentTarget.style.borderColor = 'rgba(156, 81, 73, 0.3)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <span style={{ fontSize: '1.3rem' }}>📚</span>
-                Ajouter à ma liste
-                <span style={{
-                  position: 'absolute',
-                  right: '20px',
-                  fontSize: '1.2rem',
-                  transition: 'transform 0.3s ease',
-                }}>+</span>
               </button>
             </div>
           </div>
@@ -671,7 +667,7 @@ const BookDetails = () => {
                     display: 'flex',
                     alignItems: 'center',
                   }}>
-                    {book.genre}
+                    {book.genre || 'Non spécifié'}
                   </div>
                 </div>
                 
@@ -702,7 +698,7 @@ const BookDetails = () => {
                     alignItems: 'center',
                     fontFamily: 'monospace',
                   }}>
-                    {book.isbn}
+                    {book.isbn || 'ISBN non disponible'}
                   </div>
                 </div>
                 
@@ -829,12 +825,12 @@ const BookDetails = () => {
                   <>
                     <p style={{ marginBottom: '20px' }}>
                       Ce livre exceptionnel fait partie de notre collection la plus prestigieuse. 
-                      Écrit par <span style={{ color: '#FFD166', fontWeight: 600 }}>{book.auteur}</span>, 
+                      Écrit par <span style={{ color: '#FFD166', fontWeight: 600 }}>{book.auteur || 'un auteur renommé'}</span>, 
                       il incarne l'excellence littéraire à travers une narration captivante et profonde.
                     </p>
                     
                     <p style={{ marginBottom: '20px' }}>
-                      Au cœur du genre <span style={{ color: '#FF9B54', fontWeight: 600 }}>{book.genre}</span>, 
+                      Au cœur du genre <span style={{ color: '#FF9B54', fontWeight: 600 }}>{book.genre || 'littérature'}</span>, 
                       cette œuvre vous transporte dans un univers riche en émotions, réflexions et découvertes. 
                       Chaque page tournée révèle de nouvelles perspectives et une compréhension plus profonde 
                       des thèmes abordés.
@@ -893,7 +889,7 @@ const BookDetails = () => {
               <div style={{
                 width: '12px',
                 height: '12px',
-                backgroundColor: book.numTotalLivres > 0 ? '#4CAF50' : '#FF6B6B',
+                backgroundColor: (book.numTotalLivres ?? 0) > 0 ? '#4CAF50' : '#FF6B6B',
                 borderRadius: '50%',
                 animation: 'pulse 2s infinite',
               }} />
@@ -901,7 +897,7 @@ const BookDetails = () => {
                 color: 'rgba(255, 251, 245, 0.9)',
                 fontWeight: 600,
               }}>
-                {book.numTotalLivres > 0 ? 'Disponible pour le prêt' : 'Indisponible'}
+                {(book.numTotalLivres ?? 0) > 0 ? 'Disponible pour le prêt' : 'Indisponible'}
               </span>
             </div>
           </div>
@@ -912,7 +908,7 @@ const BookDetails = () => {
             fontStyle: 'italic',
             textAlign: 'right',
           }}>
-            <div>ISBN: {book.isbn}</div>
+            <div>ISBN: {book.isbn || 'Non disponible'}</div>
             <div>Dernière vérification: {new Date().toLocaleDateString('fr-FR')}</div>
           </div>
         </footer>

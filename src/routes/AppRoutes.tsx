@@ -17,6 +17,11 @@ import UserManagement from "../pages/admin/UserManagement";
 import CreateUser from "../pages/admin/CreateUser";
 import ProtectedRoute from "../auth/ProtectedRoute";
 import EditUser from "../pages/admin/EditUser";
+import MesPretes from "../pages/lecteur/MesPretes";
+import MesDemandes from "../pages/lecteur/MesDemandes";
+import PretesActifsBiblio from "../pages/bibliothecaire/PretesActifsBiblio";
+import ProlongerPrete from "../pages/bibliothecaire/ProlongerPrete";
+import HistoriquePretesBiblio from "../pages/bibliothecaire/HistoriquePretesBiblio";
 
 const AppRoutes = () => {
   return (
@@ -39,6 +44,23 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute roles={["LECTEUR"]}>
             <LecteurDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/lecteur/mes-demandes"
+        element={
+          <ProtectedRoute roles={["LECTEUR"]}>
+            <MesDemandes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lecteur/mes-prets"
+        element={
+          <ProtectedRoute roles={["LECTEUR"]}>
+            <MesPretes />
           </ProtectedRoute>
         }
       />
@@ -76,14 +98,43 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
-        path="/biblio/prets"
+        path="/biblio/demandes"
         element={
           <ProtectedRoute roles={["BIBLIOTHECAIRE"]}>
             <PretManagement />
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/biblio/pretes-actifs"
+        element={
+          <ProtectedRoute roles={["BIBLIOTHECAIRE"]}>
+            <PretesActifsBiblio />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/biblio/pretes/:id/prolonger"
+        element={
+          <ProtectedRoute roles={["BIBLIOTHECAIRE"]}>
+            <ProlongerPrete />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/biblio/historique-pretes"
+        element={
+          <ProtectedRoute roles={["BIBLIOTHECAIRE"]}>
+            <HistoriquePretesBiblio />
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* ADMIN */}
       <Route

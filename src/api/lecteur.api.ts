@@ -1,5 +1,5 @@
 import { apiLecteur } from "./axios";
-import { Lecteur } from "../types/Lecteur";
+import { Lecteur } from "../types/lecteur";
 import { LecteurRegister } from "../types/LecteurRegister";
 
 export const LecteurAPI = {

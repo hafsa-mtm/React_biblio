@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AdminAPI } from "../../api/admin.api";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Save, ArrowLeft, CheckCircle, XCircle, Info, User, Mail, Lock, Calendar, Crown, Book, UserCheck, ShieldAlert } from "lucide-react";
+import { Save, ArrowLeft, Info, User, Mail, Lock, Calendar, Crown, Book, UserCheck, ShieldAlert } from "lucide-react";
 
 const EditUser = () => {
   const { id, role } = useParams<{ id: string; role: "admin" | "bibliothecaire" | "lecteur" }>();

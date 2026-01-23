@@ -9,7 +9,9 @@ const BookCard = ({ book }: Props) => {
   const navigate = useNavigate();
 
   // Generate sophisticated colors based on genre
-  const getBookSpineColor = (genre: string) => {
+  const getBookSpineColor = (genre: string | undefined) => {
+    if (!genre) return '#9C5149';
+    
     const colors: Record<string, string> = {
       'Roman': '#8B7355',
       'Science-Fiction': '#2C5282',
@@ -28,7 +30,12 @@ const BookCard = ({ book }: Props) => {
   };
 
   // Generate elegant book cover designs
-  const getBookCoverDesign = (genre: string) => {
+  const getBookCoverDesign = (genre: string | undefined) => {
+    if (!genre) return { 
+      color: '#9C5149', 
+      pattern: 'linear-gradient(135deg, rgba(156, 81, 73, 0.3) 0%, rgba(192, 57, 43, 0.3) 100%)' 
+    };
+    
     const designs: Record<string, { color: string; pattern: string }> = {
       'Roman': {
         color: '#C19A6B',
@@ -58,7 +65,9 @@ const BookCard = ({ book }: Props) => {
   };
 
   // Get elegant book icon
-  const getBookIcon = (genre: string) => {
+  const getBookIcon = (genre: string | undefined) => {
+    if (!genre) return '📚';
+    
     const icons: Record<string, string> = {
       'Roman': '📜',
       'Science-Fiction': '🚀',
@@ -107,7 +116,7 @@ const BookCard = ({ book }: Props) => {
       const glow = e.currentTarget.querySelector('.book-glow') as HTMLDivElement;
       if (glow) glow.style.opacity = '0';
     }}
-    onClick={() => navigate(`/livres/${book.idLivre}`)}
+    onClick={() => navigate(`/livres/${book.idLivre || ''}`)}
     >
       
       {/* Enhanced Library Shelf Background */}
@@ -174,7 +183,7 @@ const BookCard = ({ book }: Props) => {
           backdropFilter: 'blur(8px)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
         }}>
-          REF: {book.idLivre.toString().padStart(5, '0')}
+          REF: {book.idLivre ? book.idLivre.toString().padStart(5, '0') : '00000'}
         </div>
 
         {/* Book Display Area */}
@@ -222,8 +231,8 @@ const BookCard = ({ book }: Props) => {
               position: 'absolute',
               width: '100%',
               height: '100%',
-              background: book.image ? `url(${book.image}) center/cover no-repeat` : coverDesign.color,
-              backgroundImage: book.image ? `url(${book.image})` : `${coverDesign.pattern}, ${coverDesign.color}`,
+              background: book.image ? `url("${book.image}") center/cover no-repeat` : coverDesign.color,
+              backgroundImage: book.image ? `url("${book.image}")` : `${coverDesign.pattern}, ${coverDesign.color}`,
               borderRadius: '8px 18px 18px 8px',
               border: '3px solid rgba(255, 251, 245, 0.25)',
               boxShadow: `
@@ -268,7 +277,7 @@ const BookCard = ({ book }: Props) => {
                 background: 'linear-gradient(to right, rgba(0,0,0,0.3), transparent)',
                 padding: '2px 10px 2px 5px',
               }}>
-                {book.titre}
+                {book.titre || 'Titre inconnu'}
               </div>
               
               {/* Book Icon for Missing Images */}
@@ -339,7 +348,7 @@ const BookCard = ({ book }: Props) => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}>
-                {book.genre}
+                {book.genre || 'Non spécifié'}
               </div>
             </div>
             
@@ -387,7 +396,7 @@ const BookCard = ({ book }: Props) => {
             letterSpacing: '0.3px',
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
           }}>
-            {book.titre}
+            {book.titre || 'Titre inconnu'}
           </h3>
 
           {/* Author with Enhanced Styling */}
@@ -427,7 +436,7 @@ const BookCard = ({ book }: Props) => {
               maxWidth: 'calc(100% - 40px)',
               color: '#FFE5B4',
             }}>
-              {book.auteur}
+              {book.auteur || 'Auteur inconnu'}
             </span>
           </div>
 
@@ -486,7 +495,7 @@ const BookCard = ({ book }: Props) => {
                 whiteSpace: 'nowrap',
                 width: '100%',
               }}>
-                {book.genre}
+                {book.genre || 'Non spécifié'}
               </span>
             </div>
             
@@ -497,11 +506,11 @@ const BookCard = ({ book }: Props) => {
               alignItems: 'center',
               gap: '6px',
               padding: '12px',
-              background: book.numTotalLivres > 0 
+              background: (book.numTotalLivres ?? 0) > 0 
                 ? 'rgba(76, 175, 80, 0.08)' 
                 : 'rgba(255, 107, 107, 0.08)',
               borderRadius: '10px',
-              border: book.numTotalLivres > 0 
+              border: (book.numTotalLivres ?? 0) > 0 
                 ? '1px solid rgba(76, 175, 80, 0.15)' 
                 : '1px solid rgba(255, 107, 107, 0.15)',
               transition: 'all 0.3s ease',
@@ -517,9 +526,9 @@ const BookCard = ({ book }: Props) => {
                   width: '12px',
                   height: '12px',
                   borderRadius: '50%',
-                  backgroundColor: book.numTotalLivres > 0 ? '#4CAF50' : '#FF6B6B',
-                  animation: book.numTotalLivres > 0 ? 'pulse 2s infinite' : 'none',
-                  boxShadow: book.numTotalLivres > 0 
+                  backgroundColor: (book.numTotalLivres ?? 0) > 0 ? '#4CAF50' : '#FF6B6B',
+                  animation: (book.numTotalLivres ?? 0) > 0 ? 'pulse 2s infinite' : 'none',
+                  boxShadow: (book.numTotalLivres ?? 0) > 0 
                     ? '0 0 8px rgba(76, 175, 80, 0.5)' 
                     : '0 0 8px rgba(255, 107, 107, 0.5)',
                 }} />
@@ -528,7 +537,7 @@ const BookCard = ({ book }: Props) => {
                   fontWeight: '700',
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
-                  color: book.numTotalLivres > 0 
+                  color: (book.numTotalLivres ?? 0) > 0 
                     ? 'rgba(76, 175, 80, 0.9)' 
                     : 'rgba(255, 107, 107, 0.9)',
                 }}>
@@ -538,22 +547,22 @@ const BookCard = ({ book }: Props) => {
               <span style={{
                 fontSize: '1.4rem',
                 fontWeight: '800',
-                color: book.numTotalLivres > 0 ? '#4CAF50' : '#FF6B6B',
-                textShadow: book.numTotalLivres > 0 
+                color: (book.numTotalLivres ?? 0) > 0 ? '#4CAF50' : '#FF6B6B',
+                textShadow: (book.numTotalLivres ?? 0) > 0 
                   ? '0 2px 8px rgba(76, 175, 80, 0.3)' 
                   : '0 2px 8px rgba(255, 107, 107, 0.3)',
               }}>
-                {book.numTotalLivres}
+                {book.numTotalLivres ?? 0}
               </span>
               <span style={{
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: book.numTotalLivres > 0 
+                color: (book.numTotalLivres ?? 0) > 0 
                   ? 'rgba(76, 175, 80, 0.8)' 
                   : 'rgba(255, 107, 107, 0.8)',
                 letterSpacing: '0.3px',
               }}>
-                {book.numTotalLivres === 1 ? 'copie' : 'copies'}
+                {(book.numTotalLivres ?? 0) === 1 ? 'copie' : 'copies'}
               </span>
             </div>
           </div>

@@ -12,6 +12,8 @@ interface PieChartProps {
   size?: number;
   showLegend?: boolean;
   showPercentages?: boolean;
+  totalLabel?: string; // AJOUTÉ: Label personnalisé pour le total
+  unit?: string; // AJOUTÉ: Unité (ex: "Livres", "Utilisateurs", etc.)
 }
 
 const PieChart: React.FC<PieChartProps> = ({
@@ -20,9 +22,11 @@ const PieChart: React.FC<PieChartProps> = ({
   size = 250,
   showLegend = true,
   showPercentages = true,
+  totalLabel, // AJOUTÉ
+  unit = 'Total', // AJOUTÉ avec valeur par défaut
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [animatedValues, setAnimatedValues] = useState<number[]>([]);
+  const [] = useState<number[]>([]);
 
   // Calculate total and percentages
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -32,16 +36,12 @@ const PieChart: React.FC<PieChartProps> = ({
   useEffect(() => {
     const animationDuration = 1500;
     const startTime = Date.now();
-    const startValues = Array(data.length).fill(0);
     
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / animationDuration, 1);
       
-      const easedProgress = 1 - Math.pow(1 - progress, 3); // Ease-out cubic
       
-      const newValues = data.map(item => item.value * easedProgress);
-      setAnimatedValues(newValues);
       
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -51,6 +51,59 @@ const PieChart: React.FC<PieChartProps> = ({
     requestAnimationFrame(animate);
   }, [data]);
 
+  // Fonction pour formater les labels selon vos statuts
+  const formatLabel = (label: string): string => {
+    const labelMap: Record<string, string> = {
+      'Disponible': 'Disponible',
+      'available': 'Disponible',
+      'Emprunté': 'Emprunté',
+      'emprunté': 'Emprunté',
+      'emprunte': 'Emprunté',
+      'borrowed': 'Emprunté',
+      'Réservé': 'Demandé',
+      'réservé': 'Demandé',
+      'reserve': 'Demandé',
+      'reserved': 'Demandé',
+      'Demandé': 'Demandé',
+      'demandé': 'Demandé',
+      'demande': 'Demandé',
+      'En réparation': 'En retard',
+      'en réparation': 'En retard',
+      'en reparation': 'En retard',
+      'maintenance': 'En retard',
+      'En retard': 'En retard',
+      'en retard': 'En retard',
+      'late': 'En retard',
+    };
+    
+    return labelMap[label] || label;
+  };
+
+  // Fonction pour obtenir la couleur selon le statut
+  const getColorForLabel = (label: string): string => {
+    const formattedLabel = formatLabel(label).toLowerCase();
+    
+    switch (formattedLabel) {
+      case 'disponible':
+        return '#4CAF50'; // Vert
+      case 'emprunté':
+        return '#FF9B54'; // Orange
+      case 'demandé':
+        return '#FFD166'; // Jaune
+      case 'en retard':
+        return '#FF6B6B'; // Rouge
+      default:
+        return '#8884d8';
+    }
+  };
+
+  // Normaliser les données pour s'assurer qu'elles ont les bons labels et couleurs
+  const normalizedData = data.map(item => ({
+    ...item,
+    label: formatLabel(item.label),
+    color: getColorForLabel(item.label)
+  }));
+
   // Generate pie slices
   const generateSlices = () => {
     let cumulativeAngle = 0;
@@ -58,7 +111,7 @@ const PieChart: React.FC<PieChartProps> = ({
     const strokeWidth = 30;
     const innerRadius = radius - strokeWidth;
 
-    return data.map((item, index) => {
+    return normalizedData.map((item, index) => {
       const percentage = percentages[index];
       const angle = (percentage / 100) * 360;
       const largeArcFlag = angle > 180 ? 1 : 0;
@@ -133,6 +186,9 @@ const PieChart: React.FC<PieChartProps> = ({
   // Calculate center text position
   const centerX = size / 2;
   const centerY = size / 2;
+
+  // Déterminer le label dynamique
+  const dynamicLabel = totalLabel || unit; // Utilise totalLabel si fourni, sinon unit
 
   return (
     <div style={{
@@ -217,7 +273,7 @@ const PieChart: React.FC<PieChartProps> = ({
               strokeWidth="1"
             />
             
-            {/* Center text */}
+            {/* Center text - DYNAMIQUE */}
             <text
               x={centerX}
               y={centerY - 10}
@@ -240,7 +296,7 @@ const PieChart: React.FC<PieChartProps> = ({
               fontWeight="500"
               fontFamily="'Cormorant Garamond', serif"
             >
-              Total Users
+              {dynamicLabel}
             </text>
           </svg>
           
@@ -253,7 +309,7 @@ const PieChart: React.FC<PieChartProps> = ({
               transform: 'translate(-50%, -50%)',
               backgroundColor: 'rgba(40, 28, 22, 0.95)',
               backdropFilter: 'blur(10px)',
-              border: `2px solid ${data[hoveredIndex].color}`,
+              border: `2px solid ${normalizedData[hoveredIndex].color}`,
               borderRadius: '12px',
               padding: '15px',
               minWidth: '120px',
@@ -272,7 +328,7 @@ const PieChart: React.FC<PieChartProps> = ({
                 <div style={{
                   width: '12px',
                   height: '12px',
-                  backgroundColor: data[hoveredIndex].color,
+                  backgroundColor: normalizedData[hoveredIndex].color,
                   borderRadius: '3px',
                 }} />
                 <div style={{
@@ -281,24 +337,24 @@ const PieChart: React.FC<PieChartProps> = ({
                   fontSize: '1rem',
                   fontFamily: "'Cormorant Garamond', serif",
                 }}>
-                  {data[hoveredIndex].label}
+                  {normalizedData[hoveredIndex].label}
                 </div>
               </div>
               <div style={{
-                color: data[hoveredIndex].color,
+                color: normalizedData[hoveredIndex].color,
                 fontSize: '1.8rem',
                 fontWeight: 700,
                 fontFamily: "'Playfair Display', serif",
                 lineHeight: 1,
               }}>
-                {data[hoveredIndex].value.toLocaleString()}
+                {normalizedData[hoveredIndex].value.toLocaleString()}
               </div>
               <div style={{
                 color: 'rgba(255, 251, 245, 0.7)',
                 fontSize: '0.9rem',
                 marginTop: '5px',
               }}>
-                {percentages[hoveredIndex].toFixed(1)}% of total
+                {percentages[hoveredIndex].toFixed(1)}% du total
               </div>
             </div>
           )}
@@ -313,7 +369,7 @@ const PieChart: React.FC<PieChartProps> = ({
             justifyContent: 'center',
             maxWidth: '100%',
           }}>
-            {data.map((item, index) => (
+            {normalizedData.map((item, index) => (
               <div
                 key={index}
                 style={{

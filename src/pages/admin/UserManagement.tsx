@@ -3,7 +3,6 @@ import { AdminAPI } from "../../api/admin.api";
 import { User } from "../../types/User";
 import { Link } from "react-router-dom";
 import {
-  Search,
   PlusCircle,
   Edit,
   Trash2,

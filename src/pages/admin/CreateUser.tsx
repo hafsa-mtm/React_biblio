@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { AdminAPI } from "../../api/admin.api";
 import { useNavigate, Link } from "react-router-dom";
-import { UserPlus, ArrowLeft, CheckCircle, XCircle, Info, User, Mail, Lock, Calendar, Crown, Book, UserCheck } from "lucide-react";
+import { UserPlus, ArrowLeft, Info, User, Mail, Lock, Calendar, Crown, Book, UserCheck } from "lucide-react";
 
 const CreateUser = () => {
   const navigate = useNavigate();

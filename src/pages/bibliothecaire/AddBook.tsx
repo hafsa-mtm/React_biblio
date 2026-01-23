@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { LivreAPI } from "../../api/livre.api";
-import { BookOpen, Upload, PlusCircle, CheckCircle, XCircle, Info } from "lucide-react";
+import { Upload, PlusCircle, CheckCircle, XCircle, Info } from "lucide-react";
 
 const AddBook = () => {
   const navigate = useNavigate();

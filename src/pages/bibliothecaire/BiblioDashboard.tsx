@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { bibliothecaireAPI, DashboardData } from '../../api/bibliothecaire.api';
 import StatCard from '../../components/StatsCard';
 import PieChart from '../../components/charts/PieChart';
 import BarChart from '../../components/charts/BarChart';
+import { useAuth } from '../../auth/AuthContext';
+
 
 const BiblioDashboard = () => {
   const navigate = useNavigate();
@@ -11,13 +13,13 @@ const BiblioDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [previousData, setPreviousData] = useState<DashboardData | null>(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const { logout } = useAuth();
+const handleLogout = () => {
+  logout();               // Supprime le user et les tokens
+  navigate('/login');     // Redirige vers la page de login
+};
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       if (dashboardData) {
         setPreviousData(dashboardData);
@@ -26,22 +28,34 @@ const BiblioDashboard = () => {
       setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      const defaultData = await bibliothecaireAPI.getDashboardData();
-      setDashboardData(defaultData);
     } finally {
       setLoading(false);
     }
-  };
+  }, [dashboardData]);
+
+  useEffect(() => {
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
 
   // Calculer le pourcentage de changement
-  const calculateChange = (current: number, previous: number | undefined) => {
-    if (!previous || previous === 0) return { value: '0%', type: 'neutral' };
+  type ChangeType = 'neutral' | 'positive' | 'negative';
+
+  const calculateChange = (
+    current: number,
+    previous: number | undefined
+  ): { value: string; type: ChangeType } => {
+    if (!previous || previous === 0) {
+      return { value: '0%', type: 'neutral' };
+    }
+
     const change = ((current - previous) / previous) * 100;
     const absChange = Math.abs(Math.round(change));
-    
+
     return {
       value: `${change > 0 ? '+' : ''}${absChange}%`,
-      type: change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral'
+      type: change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral',
     };
   };
 
@@ -60,7 +74,7 @@ const BiblioDashboard = () => {
 
   // Préparer les données pour les graphiques
   const pieData = booksStatus.map(item => ({
-    label: item.status,
+    label: normalizeStatus(item.status),
     value: item.count,
     color: getColorForStatus(item.status)
   }));
@@ -211,35 +225,34 @@ const BiblioDashboard = () => {
             </button>
             
             <button
-              onClick={() => navigate('/profile')}
-              style={{
-                color: '#FFFBF5',
-                textDecoration: 'none',
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                padding: '12px 25px',
-                backgroundColor: 'rgba(255, 251, 245, 0.12)',
-                borderRadius: '10px',
-                border: '2px solid rgba(255, 251, 245, 0.3)',
-                transition: 'all 0.3s ease',
-                fontFamily: "'Cormorant Garamond', serif",
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.2)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 251, 245, 0.12)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              👤 Profil
-            </button>
+  onClick={handleLogout}
+  style={{
+    color: '#FF6B6B',
+    fontSize: '1.1rem',
+    fontWeight: 600,
+    padding: '12px 25px',
+    backgroundColor: 'rgba(255, 107, 107, 0.12)',
+    borderRadius: '10px',
+    border: '2px solid rgba(255, 107, 107, 0.3)',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    fontFamily: "'Cormorant Garamond', serif",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.backgroundColor = 'rgba(255, 107, 107, 0.2)';
+    e.currentTarget.style.transform = 'translateY(-2px)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.backgroundColor = 'rgba(255, 107, 107, 0.12)';
+    e.currentTarget.style.transform = 'translateY(0)';
+  }}
+>
+  🚪 Logout
+</button>
           </div>
         </header>
 
-        {/* Stats Grid - MODIFIÉ (gardé seulement les 8 statistiques principales) */}
+        {/* Stats Grid - MODIFIÉ */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -274,23 +287,23 @@ const BiblioDashboard = () => {
             description="Actuellement empruntés"
           />
           <StatCard
-            title="Réservés"
-            value={stats?.reservedBooks || 0}
-            icon="🔖"
-            color="#9C5149"
-            change={calculateChange(stats?.reservedBooks || 0, previousStats?.reservedBooks).value}
-            changeType={calculateChange(stats?.reservedBooks || 0, previousStats?.reservedBooks).type}
-            description="Livres en attente"
+            title="Demandés"
+            value={stats?.pendingRequests || 0}
+            icon="📋"
+            color="#FFD166"
+            change={calculateChange(stats?.pendingRequests || 0, previousStats?.pendingRequests).value}
+            changeType={calculateChange(stats?.pendingRequests || 0, previousStats?.pendingRequests).type}
+            description="Demandes en attente"
           />
           
           <StatCard
-            title="En attente"
-            value={stats?.pendingReturns || 0}
-            icon="⏳"
-            color="#FFD166"
-            change={calculateChange(stats?.pendingReturns || 0, previousStats?.pendingReturns).value}
-            changeType={calculateChange(stats?.pendingReturns || 0, previousStats?.pendingReturns).type}
-            description="Retours à traiter"
+            title="Retournés"
+            value={stats?.returnedBooks || 0}
+            icon="✅"
+            color="#4CAF50"
+            change={calculateChange(stats?.returnedBooks || 0, previousStats?.returnedBooks).value}
+            changeType={calculateChange(stats?.returnedBooks || 0, previousStats?.returnedBooks).type}
+            description="Livres retournés"
           />
           
           <StatCard
@@ -302,20 +315,22 @@ const BiblioDashboard = () => {
             changeType={calculateChange(stats?.lateReturns || 0, previousStats?.lateReturns).type}
             description="Retours en retard"
           />
+          
           <StatCard
-            title="Lecteurs Actifs"
-            value={stats?.activeReaders || 0}
-            icon="👥"
-            color="#2196F3"
-            change={calculateChange(stats?.activeReaders || 0, previousStats?.activeReaders).value}
-            changeType={calculateChange(stats?.activeReaders || 0, previousStats?.activeReaders).type}
-            description="Membres actifs"
+            title="Total Prêts"
+            value={stats?.totalPrets || 0}
+            icon="📜"
+            color="#9C27B0"
+            change={calculateChange(stats?.totalPrets || 0, previousStats?.totalPrets).value}
+            changeType={calculateChange(stats?.totalPrets || 0, previousStats?.totalPrets).type}
+            description="Tous les prêts"
           />
+          
           <StatCard
             title="Total Genres"
             value={booksByGenre.length}
             icon="🏷️"
-            color="#9C27B0"
+            color="#FF9800"
             change=""
             changeType="neutral"
             description="Catégories différentes"
@@ -335,6 +350,7 @@ const BiblioDashboard = () => {
             size={280}
             showLegend={true}
             showPercentages={true}
+            totalLabel="Livres"
           />
           <BarChart
             data={genreData}
@@ -345,13 +361,22 @@ const BiblioDashboard = () => {
           />
           <PieChart
             data={[
-              { label: 'À temps', value: (stats?.borrowedBooks || 0) - (stats?.lateReturns || 0), color: '#4CAF50' },
-              { label: 'En retard', value: stats?.lateReturns || 0, color: '#FF6B6B' }
+              { 
+                label: 'Retournés', 
+                value: stats?.returnedBooks || 0, 
+                color: '#4CAF50'
+              },
+              { 
+                label: 'Emprunts en cours', 
+                value: stats?.borrowedBooks || 0, 
+                color: '#FF9B54'
+              }
             ]}
             title="Retours des Livres"
             size={280}
             showLegend={true}
             showPercentages={true}
+            totalLabel="Prêts"
           />
         </div>
 
@@ -394,39 +419,25 @@ const BiblioDashboard = () => {
                   description: `${stats?.totalBooks || 0} livres au catalogue`
                 },
                 { 
-                  label: 'Gérer les Emprunts', 
+                  label: 'Gérer les Demandes', 
+                  icon: '📋', 
+                  color: '#FFD166', 
+                  action: () => navigate('/biblio/demandes'),
+                  description: `${stats?.pendingRequests || 0} demandes à traiter`
+                },
+                { 
+                  label: 'Gérer Prêts Actifs', 
                   icon: '📖', 
                   color: '#FF9B54', 
-                  action: () => navigate('/biblio/prets'),
+                  action: () => navigate('/biblio/pretes-actifs'),
                   description: `${stats?.borrowedBooks || 0} emprunts actifs`
                 },
                 { 
-                  label: 'Gérer les Lecteurs', 
-                  icon: '👥', 
-                  color: '#2196F3', 
-                  action: () => navigate('/biblio/lecteurs'),
-                  description: 'Voir tous les membres'
-                },
-                { 
-                  label: 'Traiter les Retours', 
-                  icon: '🔄', 
-                  color: '#9C5149', 
-                  action: () => navigate('/biblio/retours'),
-                  description: `${stats?.pendingReturns || 0} retours à traiter`
-                },
-                { 
-                  label: 'Supprimer Livre', 
-                  icon: '🗑️', 
-                  color: '#FF6B6B', 
-                  action: () => navigate('/biblio/livres'),
-                  description: 'Supprimer un ouvrage'
-                },
-                { 
-                  label: 'Analytiques', 
-                  icon: '📊', 
-                  color: '#4CAF50', 
-                  action: () => navigate('/biblio/analytiques'),
-                  description: 'Voir les statistiques détaillées'
+                  label: 'Historique des Prêts', 
+                  icon: '📜', 
+                  color: '#9C27B0', 
+                  action: () => navigate('/biblio/historique-pretes'),
+                  description: `${stats?.totalPrets || 0} prêts au total`
                 },
               ].map((action, index) => (
                 <button
@@ -481,159 +492,6 @@ const BiblioDashboard = () => {
                   </div>
                 </button>
               ))}
-            </div>
-          </div>
-
-          {/* Reports Panel */}
-          <div style={{
-            backgroundColor: 'rgba(255, 251, 245, 0.08)',
-            backdropFilter: 'blur(15px)',
-            borderRadius: '18px',
-            padding: '30px',
-            border: '2px solid rgba(255, 251, 245, 0.2)',
-          }}>
-            <h3 style={{
-              fontSize: '1.6rem',
-              fontWeight: 700,
-              color: '#FFFBF5',
-              marginBottom: '25px',
-              fontFamily: "'Playfair Display', serif",
-            }}>
-              📊 Rapports
-            </h3>
-            
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '15px',
-              marginBottom: '25px',
-            }}>
-              <button
-                onClick={() => bibliothecaireAPI.generateMonthlyReport()}
-                style={{
-                  padding: '18px',
-                  backgroundColor: 'rgba(255, 209, 102, 0.1)',
-                  color: '#FFD166',
-                  border: '2px solid rgba(255, 209, 102, 0.3)',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '15px',
-                  fontFamily: "'Cormorant Garamond', serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 209, 102, 0.2)';
-                  e.currentTarget.style.borderColor = '#FFD166';
-                  e.currentTarget.style.transform = 'translateX(5px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 209, 102, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 209, 102, 0.3)';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                }}
-              >
-                <span style={{ fontSize: '1.5rem' }}>📈</span>
-                Générer Rapport Mensuel
-              </button>
-              
-              <button
-                onClick={async () => {
-                  try {
-                    const blob = await bibliothecaireAPI.exportLoansToCSV();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `prets_${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                  } catch (error) {
-                    console.error('Erreur lors de l\'export CSV:', error);
-                  }
-                }}
-                style={{
-                  padding: '18px',
-                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                  color: '#4CAF50',
-                  border: '2px solid rgba(76, 175, 80, 0.3)',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '15px',
-                  fontFamily: "'Cormorant Garamond', serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
-                  e.currentTarget.style.borderColor = '#4CAF50';
-                  e.currentTarget.style.transform = 'translateX(5px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(76, 175, 80, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(76, 175, 80, 0.3)';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                }}
-              >
-                <span style={{ fontSize: '1.5rem' }}>📥</span>
-                Exporter Emprunts CSV
-              </button>
-              
-              <button
-                onClick={async () => {
-                  try {
-                    const blob = await bibliothecaireAPI.exportBooksToCSV();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `catalogue_${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                  } catch (error) {
-                    console.error('Erreur lors de l\'export du catalogue:', error);
-                  }
-                }}
-                style={{
-                  padding: '18px',
-                  backgroundColor: 'rgba(156, 81, 73, 0.1)',
-                  color: '#9C5149',
-                  border: '2px solid rgba(156, 81, 73, 0.3)',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '15px',
-                  fontFamily: "'Cormorant Garamond', serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(156, 81, 73, 0.2)';
-                  e.currentTarget.style.borderColor = '#9C5149';
-                  e.currentTarget.style.transform = 'translateX(5px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(156, 81, 73, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(156, 81, 73, 0.3)';
-                  e.currentTarget.style.transform = 'translateX(0)';
-                }}
-              >
-                <span style={{ fontSize: '1.5rem' }}>📚</span>
-                Exporter Catalogue
-              </button>
             </div>
           </div>
         </div>
@@ -807,7 +665,19 @@ const BiblioDashboard = () => {
               border: '1px solid rgba(255, 155, 84, 0.2)',
             }}>
               <span style={{ color: '#FF9B54' }}>📖</span>
-              <span>{stats?.borrowedBooks || 0} Emprunts actifs</span>
+              <span>{stats?.borrowedBooks || 0} Emprunts</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 15px',
+              backgroundColor: 'rgba(76, 175, 80, 0.1)',
+              borderRadius: '20px',
+              border: '1px solid rgba(76, 175, 80, 0.2)',
+            }}>
+              <span style={{ color: '#4CAF50' }}>✅</span>
+              <span>{stats?.returnedBooks || 0} Retournés</span>
             </div>
           </div>
           <div>
@@ -869,19 +739,6 @@ const getColorForGenre = (genre: string) => {
   return genreColors[genre] || '#8884d8';
 };
 
-const getGenreIcon = (genre: string) => {
-  const genreIcons: Record<string, string> = {
-    'Roman': '📖',
-    'Science-Fiction': '🚀',
-    'Fantastique': '🐉',
-    'Historique': '🏛️',
-    'Policier': '🔍',
-    'Biographie': '👤',
-    'Poésie': '✍️',
-  };
-  return genreIcons[genre] || '📚';
-};
-
 const getColorForStatus = (status: string) => {
   switch (status.toLowerCase()) {
     case 'disponible':
@@ -889,16 +746,41 @@ const getColorForStatus = (status: string) => {
       return '#4CAF50';
     case 'emprunté':
     case 'borrowed':
+    case 'emprunte':
       return '#FF9B54';
+    case 'demandé':
     case 'réservé':
     case 'reserved':
+    case 'reserve':
       return '#FFD166';
+    case 'en retard':
     case 'en réparation':
+    case 'en reparation':
     case 'maintenance':
       return '#FF6B6B';
     default:
       return '#2196F3';
   }
+};
+
+const normalizeStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'disponible': 'Disponible',
+    'available': 'Disponible',
+    'emprunté': 'Emprunté',
+    'emprunte': 'Emprunté',
+    'borrowed': 'Emprunté',
+    'demandé': 'Demandé',
+    'réservé': 'Demandé',
+    'reserve': 'Demandé',
+    'reserved': 'Demandé',
+    'en retard': 'En retard',
+    'en réparation': 'En retard',
+    'en reparation': 'En retard',
+    'maintenance': 'En retard'
+  };
+  
+  return statusMap[status.toLowerCase()] || status;
 };
 
 const getActivityIcon = (type: string) => {
@@ -911,6 +793,7 @@ const getActivityIcon = (type: string) => {
     case 'renew': return '🔄';
     case 'late': return '⏰';
     case 'register': return '👤';
+    case 'delete': return '🗑️';
     default: return '📝';
   }
 };

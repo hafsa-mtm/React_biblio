@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { LivreAPI } from '../../api/livre.api';
 import { Book } from '../../types/Book';
 import {
-  Search,
   PlusCircle,
   Edit,
   Trash2,
@@ -27,8 +26,6 @@ const AllBooks = () => {
   }>({ type: 'success', message: '', show: false });
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-
-  const navigate = useNavigate();
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message, show: true });

@@ -27,7 +27,7 @@ const BarChart: React.FC<BarChartProps> = ({
   const maxValue = Math.max(...data.map(item => item.value));
   const barWidth = 40;
   const spacing = 20;
-  const chartWidth = (barWidth + spacing) * data.length + spacing;
+  //const chartWidth = (barWidth + spacing) * data.length + spacing;
   
   // Animation effect
   useEffect(() => {

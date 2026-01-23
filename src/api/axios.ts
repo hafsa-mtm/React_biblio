@@ -34,6 +34,10 @@ export const apiPret = axios.create({
   baseURL: "http://localhost:8888/PRETE-SERVICE",
 });
 
+export const apiML = axios.create({
+  baseURL: "http://localhost:8888/RECOMMENDATION-SERVICE", // Port du service ML
+});
+
 /* ===========================
    REQUEST INTERCEPTOR
    (Ajout du access_token)
@@ -45,7 +49,17 @@ const securedApis = [
   apiLecteur,
   apiAdmin,
   apiPret,
+  apiML,
 ];
+
+apiML.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) {
+    config.headers["Authorization"] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 
 securedApis.forEach((api) => {
   api.interceptors.request.use((config) => {
@@ -122,6 +136,7 @@ const apis = {
   apiLecteur,
   apiAdmin,
   apiPret,
+  apiML,
 };
 
 export default apis;

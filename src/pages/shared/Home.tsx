@@ -18,14 +18,6 @@ const FeatureCard = ({
   link: string;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  
-  const handleLinkMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.gap = '15px';
-  };
-  
-  const handleLinkMouseLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.currentTarget.style.gap = '10px';
-  };
 
   return (
     <div
